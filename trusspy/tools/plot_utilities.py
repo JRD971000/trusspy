@@ -18,19 +18,19 @@ def p_nodes(self,config='undeformed'):
     if config == 'undeformed':
         plot_nodes(self.NodeHandler.coords,color='k')
     else:
-        plot_nodes(self.NodeHandler.coords+self.Results.U,color='C1')
+        plot_nodes(self.NodeHandler.coords+self.ResultHandler.U,color='C1')
     
 def p_elements(self,config='undeformed'):
     if config == 'undeformed':
-        plot_elems(self.Elements.connectivities,self.NodeHandler.coords,color='C7')
+        plot_elems(self.ElementHandler.connectivities,self.NodeHandler.coords,color='C7')
     else:
-        plot_elems(self.Elements.connectivities,self.NodeHandler.coords+self.Results.U,color='C0')
+        plot_elems(self.ElementHandler.connectivities,self.NodeHandler.coords+self.ResultHandler.U,color='C0')
     
 def p_extforces(self,config='undeformed',step=1):
     if config == 'undeformed':
-        plot_force(self.ExtForces.forces[:,3*(step-1):3*step],self.NodeHandler.coords)
+        plot_force(self.ExternalForceHandler.components[:,3*(step-1):3*step],self.NodeHandler.coords)
     else:
-        plot_force(self.ExtForces.forces[:,3*(step-1):3*step],self.NodeHandler.coords+self.Results.U)
+        plot_force(self.ExternalForceHandler.components[:,3*(step-1):3*step],self.NodeHandler.coords+self.ResultHandler.U)
         
 def p_model(self,config='deformed',view='xz',contour='force',lim_scale=1.0,force_scale=1.0,cbar_limits='auto',inc=-1,step=1):
     con = None
@@ -39,64 +39,64 @@ def p_model(self,config='deformed',view='xz',contour='force',lim_scale=1.0,force
     
     if contour == 'stretch':
         if cbar_limits == 'auto':
-            contour_lim = [1-max(abs(self.Results.R[inc].stretch[:,0]-1)),1+max(abs(self.Results.R[inc].stretch[:,0]-1))]
+            contour_lim = [1-max(abs(self.ResultHandler.R[inc].stretch[:,0]-1)),1+max(abs(self.ResultHandler.R[inc].stretch[:,0]-1))]
         else:
             contour_lim = cbar_limits
-        con = contour, self.Results.R[inc].stretch[:,0], contour_lim
+        con = contour, self.ResultHandler.R[inc].stretch[:,0], contour_lim
     if contour == 'force':
         if cbar_limits == 'auto':
-            contour_lim = [-max(abs(self.Results.R[inc].element_force[:,0])),max(abs(self.Results.R[inc].element_force[:,0]))]
+            contour_lim = [-max(abs(self.ResultHandler.R[inc].element_force[:,0])),max(abs(self.ResultHandler.R[inc].element_force[:,0]))]
         else:
             contour_lim = cbar_limits
-        con = contour, self.Results.R[inc].element_force[:,0], contour_lim
+        con = contour, self.ResultHandler.R[inc].element_force[:,0], contour_lim
     if contour == 'stress':
         if cbar_limits == 'auto':
-            contour_lim = [-max(abs(self.Results.R[inc].element_stress[:,0])),max(abs(self.Results.R[inc].element_stress[:,0]))]
+            contour_lim = [-max(abs(self.ResultHandler.R[inc].element_stress[:,0])),max(abs(self.ResultHandler.R[inc].element_stress[:,0]))]
         else:
             contour_lim = cbar_limits
-        con = contour, self.Results.R[inc].element_stress[:,0], contour_lim
+        con = contour, self.ResultHandler.R[inc].element_stress[:,0], contour_lim
     if type(contour)==tuple:
         if contour[0] == 'stretch':
-            con_data = self.Results.R[inc].stretch[:,0]
+            con_data = self.ResultHandler.R[inc].stretch[:,0]
         elif contour[0] == 'force':
-            con_data = self.Results.R[inc].element_force[:,0]
+            con_data = self.ResultHandler.R[inc].element_force[:,0]
         elif contour[0] == 'stress':
-            con_data = self.Results.R[inc].element_stress[:,0]
+            con_data = self.ResultHandler.R[inc].element_stress[:,0]
         con = contour[0], con_data, contour[1]
         
     if 'undeformed' in config:
         fig,ax = plot_nodes(self.NodeHandler.coords,color='k',view=view)
-        fig,ax = plot_elems(self.Elements.connectivities,self.NodeHandler.coords,fig,ax,
+        fig,ax = plot_elems(self.ElementHandler.connectivities,self.NodeHandler.coords,fig,ax,
                    color='C7',view=view,lim_scale=lim_scale)
         if 'deformed' not in config and force_scale is not None:
             textstr = r'$\mathbf{Plot}$ $\mathbf{Scale}$ $[F_0] =$ '+'{:2.1g} '.format(force_scale)+r'$\cdot [L]$'
-            f0_const = self.Results.R[inc].ExtForces.forces_const
-            step = self.Results.R[inc].step
-            fig,ax = plot_force((f0_const + self.ExtForces.forces[:,3*(step-1):3*step])/
-                                np.linalg.norm(f0_const + self.ExtForces.forces[:,3*(step-1):3*step]),
+            f0_const = self.ResultHandler.R[inc].ExtForces.forces_const
+            step = self.ResultHandler.R[inc].step
+            fig,ax = plot_force((f0_const + self.ExternalForceHandler.components[:,3*(step-1):3*step])/
+                                np.linalg.norm(f0_const + self.ExternalForceHandler.components[:,3*(step-1):3*step]),
                                 self.NodeHandler.coords,
                                 fig,ax,view=view,
                                 scale=force_scale)
     if 'deformed' in config:
-        fig,ax = plot_nodes(self.NodeHandler.coords+self.Results.R[inc].U,fig,ax,color='k',view=view)
-        fig,ax = plot_elems(self.Elements.connectivities,self.NodeHandler.coords+self.Results.R[inc].U,
+        fig,ax = plot_nodes(self.NodeHandler.coords+self.ResultHandler.R[inc].U,fig,ax,color='k',view=view)
+        fig,ax = plot_elems(self.ElementHandler.connectivities,self.NodeHandler.coords+self.ResultHandler.R[inc].U,
                             fig,ax,color='C0',view=view,contour=con,lim_scale=lim_scale)
         if force_scale is not None:
             textstr = r'$\mathbf{Plot}$ $\mathbf{Scale}$ $\lambda \cdot [F_0] =$ '+'{:2.1g} '.format(force_scale)+r'$\cdot [L]$'
-            f0_const = self.Results.R[inc].ExtForces.forces_const
-            step = self.Results.R[inc].step
-            fig,ax = plot_force(f0_const+self.Results.R[inc].lpf*self.ExtForces.forces[:,3*(step-1):3*step],
-                                self.NodeHandler.coords+self.Results.R[inc].U,
+            f0_const = self.ResultHandler.R[inc].ExtForces.forces_const
+            step = self.ResultHandler.R[inc].step
+            fig,ax = plot_force(f0_const+self.ResultHandler.R[inc].lpf*self.ExternalForceHandler.components[:,3*(step-1):3*step],
+                                self.NodeHandler.coords+self.ResultHandler.R[inc].U,
                                 fig,ax,view=view,
                                 scale=force_scale)
 #    if 'both' in config:
 #        fig,ax = plot_nodes(self.NodeHandler.coords,color='C7',view=view)
-#        fig,ax = plot_elems(self.Elements.connectivities,self.NodeHandler.coords,fig,ax,color='C7',view=view)
-#        fig,ax = plot_nodes(self.NodeHandler.coords+self.Results.R[inc].U,fig,ax,color='C2',view=view)
-#        fig,ax = plot_elems(self.Elements.connectivities,self.NodeHandler.coords+self.Results.R[inc].U,
+#        fig,ax = plot_elems(self.ElementHandler.connectivities,self.NodeHandler.coords,fig,ax,color='C7',view=view)
+#        fig,ax = plot_nodes(self.NodeHandler.coords+self.ResultHandler.R[inc].U,fig,ax,color='C2',view=view)
+#        fig,ax = plot_elems(self.ElementHandler.connectivities,self.NodeHandler.coords+self.ResultHandler.R[inc].U,
 #                   fig,ax,color='C0',view=view,contour=con,lim_scale=lim_scale)
-#        fig,ax = plot_force(self.Results.R[inc].lpf*self.ExtForces.forces[:,3*(step-1):3*step],
-#                   self.NodeHandler.coords+self.Results.R[inc].U,
+#        fig,ax = plot_force(self.ResultHandler.R[inc].lpf*self.ExternalForceHandler.components[:,3*(step-1):3*step],
+#                   self.NodeHandler.coords+self.ResultHandler.R[inc].U,
 #                   fig,ax,view=view,
 #                   scale=force_scale)
     
@@ -124,7 +124,7 @@ def p_model(self,config='deformed',view='xz',contour='force',lim_scale=1.0,force
         plt.xlabel(view[0])
         plt.ylabel(view[1])
 
-       #plot_force(self.ExtForces.forces,self.NodeHandler.coords)
+       #plot_force(self.ExternalForceHandler.components,self.NodeHandler.coords)
     #plt.show()
     return fig, ax
        
@@ -150,29 +150,29 @@ def p_movie(self,config='both',view='xz',contour=None,lim_scale=1.5,force_scale=
         
 #        if contour == 'stretch':
 #            if cbar_limits == 'auto':
-#                contour_lim = [1-max(abs(self.Results.R[i].stretch[:,0]-1)),1+max(abs(self.Results.R[i].stretch[:,0]-1))]
+#                contour_lim = [1-max(abs(self.ResultHandler.R[i].stretch[:,0]-1)),1+max(abs(self.ResultHandler.R[i].stretch[:,0]-1))]
 #            else:
 #                contour_lim = cbar_limits
-#            con = contour, self.Results.R[i].stretch[:,0], contour_lim
+#            con = contour, self.ResultHandler.R[i].stretch[:,0], contour_lim
 #        if contour == 'force':
 #            if cbar_limits == 'auto':
-#                contour_lim = [-max(abs(self.Results.R[i].element_force[:,0])),max(abs(self.Results.R[i].element_force[:,0]))]
+#                contour_lim = [-max(abs(self.ResultHandler.R[i].element_force[:,0])),max(abs(self.ResultHandler.R[i].element_force[:,0]))]
 #            else:
 #                contour_lim = cbar_limits
-#            con = contour, self.Results.R[i].element_force[:,0], contour_lim
+#            con = contour, self.ResultHandler.R[i].element_force[:,0], contour_lim
 #        if contour == 'stress':
 #            if cbar_limits == 'auto':
-#                contour_lim = [-max(abs(self.Results.R[i].element_stress[:,0])),max(abs(self.Results.R[i].element_stress[:,0]))]
+#                contour_lim = [-max(abs(self.ResultHandler.R[i].element_stress[:,0])),max(abs(self.ResultHandler.R[i].element_stress[:,0]))]
 #            else:
 #                contour_lim = cbar_limits
-#            con = contour, self.Results.R[i].element_stress[:,0], contour_lim
+#            con = contour, self.ResultHandler.R[i].element_stress[:,0], contour_lim
 #        if type(contour)==tuple:
 #            if contour[0] == 'stretch':
-#                con_data = self.Results.R[i].stretch[:,0]
+#                con_data = self.ResultHandler.R[i].stretch[:,0]
 #            elif contour[0] == 'force':
-#                con_data = self.Results.R[i].element_force[:,0]
+#                con_data = self.ResultHandler.R[i].element_force[:,0]
 #            elif contour[0] == 'stress':
-#                con_data = self.Results.R[i].element_stress[:,0]
+#                con_data = self.ResultHandler.R[i].element_stress[:,0]
 #            con = contour[0], con_data, contour[1]
             
         self.plot_model(config,view,contour,lim_scale,force_scale,cbar_limits,i)
@@ -188,7 +188,7 @@ def p_path(self, nodepath, increment=-1, Y='Displacement X', fig=None, ax=None):
     
     x,y = np.nan,np.nan
     
-    R = self.Results.R[increment]
+    R = self.ResultHandler.R[increment]
     
     for node in nodepath:
         if 'Displacement' in Y:
@@ -217,7 +217,7 @@ def p_history(self, nodes=[1, 1], increments=None, X='Displacement X', Y='LPF', 
     dir_dict = {'X': 0, 'Y': 1, 'Z': 2}
     
     x,y = np.nan,np.nan
-    for R in self.Results.R:
+    for R in self.ResultHandler.R:
         if 'Displacement' in X:
             x = R.U[np.where(self.NodeHandler.labels == nodes[0])][0][dir_dict[X[-1]]]
         elif 'LPF' in X:
@@ -241,9 +241,9 @@ def p_history(self, nodes=[1, 1], increments=None, X='Displacement X', Y='LPF', 
         yy.append(y)
     
     if 'Increments' in X:
-        xx = np.arange(1+len(self.Results.R), dtype=int)
+        xx = np.arange(1+len(self.ResultHandler.R), dtype=int)
     if 'Increments' in Y:
-        yy = np.arange(1+len(self.Results.R))
+        yy = np.arange(1+len(self.ResultHandler.R))
     
     if fig is None: 
         fig, ax = plt.subplots()

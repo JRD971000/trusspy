@@ -28,6 +28,6 @@ class ExternalForce:
     ------
     - add steps/stages by extending `force`
     """
-    def __init__(self,node,force):
+    def __init__(self,node,force_components):
         self.node = node
-        self.force = np.array(force, dtype=float)
+        self.components = np.array(force_components, dtype=float)

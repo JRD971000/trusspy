@@ -11,8 +11,9 @@ from ..core.node import Node
 class NodeHandler:
     "Handler for Nodes"
     def __init__(self):
-        self.labels = np.array([],dtype=int)
-        self.coords = np.zeros((0,3))
+        self.nodes = np.array([],dtype=object)
+        #self.labels = np.array([],dtype=int)
+        #self.coordinates = np.zeros((0,3),dtype=np.float)
         #self.Node = Node
         
     def __enter__(self):
@@ -21,9 +22,20 @@ class NodeHandler:
         pass
         
     def add(self,N,*args, **kwargs):
+        self.nodes = np.append(self.nodes,N)
 
-        self.labels = np.append(self.labels,N.label)
-        self.coords = np.vstack((self.coords,N.coordinates))
+    def build(self):
+        self.labels = np.array([],dtype=int)
+        self.coordinates = np.zeros((0,3),dtype=np.float)
+
+        for N in self.nodes:
+            self.coordinates = np.vstack((self.coordinates,N.coordinates))
+            self.labels      = np.append(self.labels,N.label)
+            
+        self.fix_nodes()
+        
+        # remove in a further step
+        self.coords = self.coordinates.copy()
 
     def add_nodes(self,NN):
         for N in NN:
@@ -32,4 +44,4 @@ class NodeHandler:
     def fix_nodes(self):
         indices = np.argsort(self.labels)
         self.labels = self.labels.take(indices)
-        self.coords = self.coords.take(indices,axis=0)
+        self.coordinates = self.coordinates.take(indices,axis=0)

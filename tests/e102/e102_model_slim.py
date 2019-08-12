@@ -16,24 +16,24 @@ import trusspy as tp
 M = tp.Model(logfile=False)
 
 with M.NodeHandler as MN:
-    MN.add( M.Node(1, coordinates=( 0, 0, 0)))
-    MN.add( M.Node(2, coordinates=( 1, 0, 1)))
-    MN.add( M.Node(3, coordinates=( 2, 0, 0)))
+    MN.add( tp.Node(1, coordinates=( 0, 0, 0)))
+    MN.add( tp.Node(2, coordinates=( 1, 0, 1)))
+    MN.add( tp.Node(3, coordinates=( 2, 0, 0)))
     
-geo1 = M.Geometry( classification=1, properties=[1])
-mat1 = M.Material( classification=1, properties=[1])
+geo1 = tp.Geometry( classification=1, properties=[1])
+mat1 = tp.Material( classification=1, properties=[1])
 
-with M.Elements as ME:
-    ME.add( M.Element(1, connectivity=(1,2), material=mat1, geometry=geo1))
-    ME.add( M.Element(2 ,connectivity=(2,3), material=mat1, geometry=geo1))
+with M.ElementHandler as ME:
+    ME.add( tp.Element(1, connectivity=(1,2), material=mat1, geometry=geo1))
+    ME.add( tp.Element(2 ,connectivity=(2,3), material=mat1, geometry=geo1))
 #    
-with M.Boundaries as MB:
-    MB.add( M.Boundary(1, (0,0,0) ))
-    MB.add( M.Boundary(2, (0,0,1) ))
-    MB.add( M.Boundary(3, (0,0,0) ))
+with M.BoundaryHandler as MB:
+    MB.add( tp.Boundary(1, (0,0,0) ))
+    MB.add( tp.Boundary(2, (0,0,1) ))
+    MB.add( tp.Boundary(3, (0,0,0) ))
 #    
-with M.ExtForces as MF:
-    MF.add( M.Force(2, ( 0, 0,-1) ))
+with M.ExternalForceHandler as MF:
+    MF.add( tp.Force(2, ( 0, 0,-1) ))
 #
 M.Settings.incs = 100
 M.Settings.xlimit = (2,0.5)

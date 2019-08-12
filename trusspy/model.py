@@ -164,11 +164,11 @@ class Model:
         self.Force = ExternalForce
         
         self.NodeHandler = NodeHandler()
-        self.Elements = ElementHandler()
-        self.Boundaries = BoundaryHandler()
-        self.ExtForces = ExternalForceHandler()
+        self.ElementHandler = ElementHandler()
+        self.BoundaryHandler = BoundaryHandler()
+        self.ExternalForceHandler = ExternalForceHandler()
         self.Settings = SettingsHandler()
-        #self.Results = ResultHandler()
+        #self.ResultHandler = ResultHandler()
         #self.Analysis = Analysis()
         
         if log > 1: print('    - finished.\n')
@@ -178,30 +178,38 @@ class Model:
         """build Model (r,U,K,...) with Model data and dimensions."""
         
         # create global connectivity 
-        self.Elements.build()
+        self.NodeHandler.build()
+        self.ElementHandler.build()
+        self.ExternalForceHandler.build()
         
-        self.Results = ResultHandler()
+        self.ResultHandler = ResultHandler()
         self.Analysis = Analysis()
         
         self.clock0_build = time.clock()
         self.time0_build = time.time()
         
         # initialize numbers: #nodes, #elements, #dof
-        self.nnodes = len(self.NodeHandler.labels)
-        self.nelems = len(self.Elements.elements)
+        self.nnodes = len(self.NodeHandler.nodes)
+        self.nelems = len(self.ElementHandler.elements)
         self.ndim = self.Settings.ndim
         self.ndof = self.nnodes * self.ndim
         
         # fix node sorting, undefined boundaries and undefined external forces
-        self.NodeHandler.fix_nodes()
-        self.Boundaries.fix_bounds_U(self.NodeHandler.labels)
-        self.ExtForces.fix_forces(self.NodeHandler.labels)
+        #self.NodeHandler.fix_nodes()
+        self.BoundaryHandler.fix_bounds_U(self.NodeHandler.labels)
+        self.ExternalForceHandler.fix_forces(self.NodeHandler.labels)
         
-        if not(np.allclose(self.NodeHandler.labels,self.Boundaries.Unodes) and np.allclose(self.NodeHandler.labels,self.ExtForces.nodes)):
-            raise IOError('Node sorting failed.')
+        if not np.allclose(self.NodeHandler.labels,self.ExternalForceHandler.nodes):
+            self.ExternalForceHandler.build()
+            self.ExternalForceHandler.fix_forces(self.NodeHandler.labels)
+            #print(self.ExternalForceHandler.nodes)
+            #raise IOError('Node sorting failed.')
+            
+        if not(np.allclose(self.NodeHandler.labels,self.BoundaryHandler.Unodes) and np.allclose(self.NodeHandler.labels,self.ExternalForceHandler.nodes)):
+            raise IOError('Node sorting failed.')    
         
         # init state variables for plasticity
-        if 2 in self.Elements.materials:
+        if 2 in self.ElementHandler.materials:
             self.Settings.nstatev = 2
         
         # node properties
@@ -210,7 +218,7 @@ class Model:
         #      active = free  = 1
         #    inactive = fixed = 0
         
-        self.nproBC = self.Boundaries.Uvalues
+        self.nproBC = self.BoundaryHandler.Uvalues
         self.nproDOF = np.arange(self.ndof).reshape(self.nnodes,self.ndim)
         self.nproDOF0 = self.nproDOF.flatten()[np.where(self.nproBC.flatten() == 0)]
         self.nproDOF1 = self.nproDOF.flatten()[np.where(self.nproBC.flatten() == 1)]
@@ -233,11 +241,11 @@ class Model:
             print('    fixed  DOF          "nproDOF0":', self.nproDOF0)
             
         # init results, add empty increment
-        self.Results.add_increment()
+        self.ResultHandler.add_increment()
         self.Analysis.build(self.nnodes,self.nelems,self.ndim,
                             self.nproDOF0,self.nproDOF1,
                             self.Settings.nstatev)
-        self.Results.R[-1] = copy.deepcopy(self.Analysis)
+        self.ResultHandler.R[-1] = copy.deepcopy(self.Analysis)
         
         self.clock1_build = time.clock()
         self.time1_build = time.time()
@@ -316,20 +324,20 @@ class Model:
                 print(r'$$\text{Value}_i = \left|\frac{D_x}{D_{x,max}}\right|_i$$')
             
             # get reduced external force vector
-            #f0red = self.ExtForces.forces[:,3*(step):3*(step+1)].flatten()[self.Analysis.DOF1]
+            #f0red = self.ExternalForceHandler.components[:,3*(step):3*(step+1)].flatten()[self.Analysis.DOF1]
             #self.Analysis.f0red = f0red.reshape(len(f0red),1)
-            self.Analysis.ExtForces = copy.deepcopy(self.ExtForces)
+            self.Analysis.ExtForces = copy.deepcopy(self.ExternalForceHandler)
             
-            f0_const = np.zeros_like(self.ExtForces.forces[:,3*(step):3*(step+1)])
+            f0_const = np.zeros_like(self.ExternalForceHandler.components[:,3*(step):3*(step+1)])
             for s in range(step):
-                f0_const += self.Results.step_lpf_end[s]*self.ExtForces.forces[:,3*(s):3*(s+1)]
+                f0_const += self.ResultHandler.step_lpf_end[s]*self.ExternalForceHandler.components[:,3*(s):3*(s+1)]
             if len(range(step)) is not 0:
                 print('\nconstant part of external forces due to previous step(s)')
                 print('    ',f0_const,'\n')
                 print('\ninitial values of active DOF due to previous step(s)')
                 print('    ',self.Analysis.Vred,'\n')
             self.Analysis.ExtForces.forces_const = f0_const
-            self.Analysis.ExtForces.forces = self.ExtForces.forces[:,3*(step):3*(step+1)]
+            self.Analysis.ExtForces.forces = self.ExternalForceHandler.components[:,3*(step):3*(step+1)]
             f0red = self.Analysis.ExtForces.forces.flatten()[self.Analysis.DOF1]
             self.Analysis.f0red = f0red.reshape(len(f0red),1)
             
@@ -360,26 +368,26 @@ class Model:
             print('\n### Create result object from analysis results for step {0:3d}\n'.format(1+step))
             for i,(r_V,r_a) in enumerate(zip(res_V[1:],res_a[1:])):
                 print('    write result {0:3d}/{1:3d} (LPF: {2:10.4g})'.format(1+i,len(res_V[1:]),r_a.lpf))
-                self.Results.R[-1] = r_a
-                self.Results.copy_increment()
+                self.ResultHandler.R[-1] = r_a
+                self.ResultHandler.copy_increment()
                 
             # copy initial U0
-            self.Results.R[-1].U0 = np.copy(self.Results.R[-1].U)
+            self.ResultHandler.R[-1].U0 = np.copy(self.ResultHandler.R[-1].U)
             
             # append last lpf value
-            self.Results.step_lpf_end.append(self.Results.R[-1].lpf)
+            self.ResultHandler.step_lpf_end.append(self.ResultHandler.R[-1].lpf)
             
             # reset LPF for new step
             if step+1 < self.Settings.nsteps:
                 self.Analysis.Vred[-1] = 0.0
                 self.Analysis.lpf = 0.0
             else:
-                self.Results.remove_last_increment()
+                self.ResultHandler.remove_last_increment()
                 
             if self.Settings.log > 0: print('\nEnd of Step', step+1)
             
         # duplicate first increment to get right indices
-        self.Results.duplicate_first_increment()
+        self.ResultHandler.duplicate_first_increment()
             
         time_dclock_run   = time.clock() - self.clock0_run
         time_dtime_run    = time.time()  - self.time0_run
@@ -458,7 +466,7 @@ class Model:
         self.Analysis.U0.reshape(len(self.Analysis.U0.flatten(),))[self.Analysis.DOF1] = U0red
         
         # loop over elements
-        for e in self.Elements.elements:
+        for e in self.ElementHandler.elements:
             nodes = e.connectivity # connected nodes
             
             mat_prop = e.material.properties  # material parameter
@@ -501,7 +509,7 @@ class Model:
             #    umat = umat_elplast_kiniso
             
             self.Analysis,state_v = truss(e,nodes,Xnodes,Unodes,U0nodes,rnodes,
-                                       self.NodeHandler.labels,self.Elements.labels,stage,
+                                       self.NodeHandler.labels,self.ElementHandler.labels,stage,
                                        state_v,mat_prop,geo_prop,umat,
                                        self.Analysis)
             if statev_write and self.Settings.nstatev > 0:

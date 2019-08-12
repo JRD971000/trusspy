@@ -11,8 +11,10 @@ from ..core.external_force import ExternalForce
 class ExternalForceHandler:
     "Handler for External Forces"
     def __init__(self):
-        self.nodes = None
-        self.forces = None
+        self.forces = np.array([],dtype=object)
+        
+        #self.nodes = np.array([],dtype=int)
+        #self.components = np.zeros((0,3),dtype=np.float)
         
     def __enter__(self):
         return self
@@ -20,16 +22,15 @@ class ExternalForceHandler:
         pass
         
     def add(self,F, *args, **kwargs):
-        
-        if 'ExternalForce' not in str(type(F)):
-            F = ExternalForce(F, *args, **kwargs)
+        self.forces = np.append(self.forces,F)
             
-        if self.nodes is None:
-            self.nodes = np.array([F.node])
-            self.forces = np.array([F.force])
-        else:
-            self.nodes = np.append(self.nodes,F.node)
-            self.forces = np.vstack((self.forces,F.force))
+    def build(self):
+        self.nodes = np.array([],dtype=int)
+        self.components = np.zeros((0,3),dtype=np.float)
+
+        for F in self.forces:
+            self.nodes      = np.append(self.nodes,F.node)
+            self.components = np.vstack((self.components,F.components))
             
     def add_forces(self,FF):
         
@@ -42,10 +43,11 @@ class ExternalForceHandler:
         # are nodelist entries in force-nodes?
         mask = np.isin(nodelist, self.nodes, invert=True)
         fix_nodes = nodelist[mask] # nodes to fix
-        comp = self.forces.shape[1]
+        #comp = self.components.shape[1]
         for n in fix_nodes:
-            F = ExternalForce(n, np.zeros(comp))
+            #F = ExternalForce(n, np.zeros(comp))
+            F = ExternalForce(n, (0,0,0))
             self.add(F)
         indices = np.argsort(self.nodes)
         self.nodes = self.nodes.take(indices)
-        self.forces = self.forces.take(indices,axis=0)
+        self.components = self.components.take(indices,axis=0)
