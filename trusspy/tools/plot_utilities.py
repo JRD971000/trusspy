@@ -16,21 +16,21 @@ from .movie_generator import png_to_gif
 
 def p_nodes(self,config='undeformed'):
     if config == 'undeformed':
-        plot_nodes(self.Nodes.coords,color='k')
+        plot_nodes(self.NodeHandler.coords,color='k')
     else:
-        plot_nodes(self.Nodes.coords+self.Results.U,color='C1')
+        plot_nodes(self.NodeHandler.coords+self.Results.U,color='C1')
     
 def p_elements(self,config='undeformed'):
     if config == 'undeformed':
-        plot_elems(self.Elements.conns,self.Nodes.coords,color='C7')
+        plot_elems(self.Elements.connectivities,self.NodeHandler.coords,color='C7')
     else:
-        plot_elems(self.Elements.conns,self.Nodes.coords+self.Results.U,color='C0')
+        plot_elems(self.Elements.connectivities,self.NodeHandler.coords+self.Results.U,color='C0')
     
 def p_extforces(self,config='undeformed',step=1):
     if config == 'undeformed':
-        plot_force(self.ExtForces.forces[:,3*(step-1):3*step],self.Nodes.coords)
+        plot_force(self.ExtForces.forces[:,3*(step-1):3*step],self.NodeHandler.coords)
     else:
-        plot_force(self.ExtForces.forces[:,3*(step-1):3*step],self.Nodes.coords+self.Results.U)
+        plot_force(self.ExtForces.forces[:,3*(step-1):3*step],self.NodeHandler.coords+self.Results.U)
         
 def p_model(self,config='deformed',view='xz',contour='force',lim_scale=1.0,force_scale=1.0,cbar_limits='auto',inc=-1,step=1):
     con = None
@@ -65,8 +65,8 @@ def p_model(self,config='deformed',view='xz',contour='force',lim_scale=1.0,force
         con = contour[0], con_data, contour[1]
         
     if 'undeformed' in config:
-        fig,ax = plot_nodes(self.Nodes.coords,color='k',view=view)
-        fig,ax = plot_elems(self.Elements.conns,self.Nodes.coords,fig,ax,
+        fig,ax = plot_nodes(self.NodeHandler.coords,color='k',view=view)
+        fig,ax = plot_elems(self.Elements.connectivities,self.NodeHandler.coords,fig,ax,
                    color='C7',view=view,lim_scale=lim_scale)
         if 'deformed' not in config and force_scale is not None:
             textstr = r'$\mathbf{Plot}$ $\mathbf{Scale}$ $[F_0] =$ '+'{:2.1g} '.format(force_scale)+r'$\cdot [L]$'
@@ -74,29 +74,29 @@ def p_model(self,config='deformed',view='xz',contour='force',lim_scale=1.0,force
             step = self.Results.R[inc].step
             fig,ax = plot_force((f0_const + self.ExtForces.forces[:,3*(step-1):3*step])/
                                 np.linalg.norm(f0_const + self.ExtForces.forces[:,3*(step-1):3*step]),
-                                self.Nodes.coords,
+                                self.NodeHandler.coords,
                                 fig,ax,view=view,
                                 scale=force_scale)
     if 'deformed' in config:
-        fig,ax = plot_nodes(self.Nodes.coords+self.Results.R[inc].U,fig,ax,color='k',view=view)
-        fig,ax = plot_elems(self.Elements.conns,self.Nodes.coords+self.Results.R[inc].U,
+        fig,ax = plot_nodes(self.NodeHandler.coords+self.Results.R[inc].U,fig,ax,color='k',view=view)
+        fig,ax = plot_elems(self.Elements.connectivities,self.NodeHandler.coords+self.Results.R[inc].U,
                             fig,ax,color='C0',view=view,contour=con,lim_scale=lim_scale)
         if force_scale is not None:
             textstr = r'$\mathbf{Plot}$ $\mathbf{Scale}$ $\lambda \cdot [F_0] =$ '+'{:2.1g} '.format(force_scale)+r'$\cdot [L]$'
             f0_const = self.Results.R[inc].ExtForces.forces_const
             step = self.Results.R[inc].step
             fig,ax = plot_force(f0_const+self.Results.R[inc].lpf*self.ExtForces.forces[:,3*(step-1):3*step],
-                                self.Nodes.coords+self.Results.R[inc].U,
+                                self.NodeHandler.coords+self.Results.R[inc].U,
                                 fig,ax,view=view,
                                 scale=force_scale)
 #    if 'both' in config:
-#        fig,ax = plot_nodes(self.Nodes.coords,color='C7',view=view)
-#        fig,ax = plot_elems(self.Elements.conns,self.Nodes.coords,fig,ax,color='C7',view=view)
-#        fig,ax = plot_nodes(self.Nodes.coords+self.Results.R[inc].U,fig,ax,color='C2',view=view)
-#        fig,ax = plot_elems(self.Elements.conns,self.Nodes.coords+self.Results.R[inc].U,
+#        fig,ax = plot_nodes(self.NodeHandler.coords,color='C7',view=view)
+#        fig,ax = plot_elems(self.Elements.connectivities,self.NodeHandler.coords,fig,ax,color='C7',view=view)
+#        fig,ax = plot_nodes(self.NodeHandler.coords+self.Results.R[inc].U,fig,ax,color='C2',view=view)
+#        fig,ax = plot_elems(self.Elements.connectivities,self.NodeHandler.coords+self.Results.R[inc].U,
 #                   fig,ax,color='C0',view=view,contour=con,lim_scale=lim_scale)
 #        fig,ax = plot_force(self.Results.R[inc].lpf*self.ExtForces.forces[:,3*(step-1):3*step],
-#                   self.Nodes.coords+self.Results.R[inc].U,
+#                   self.NodeHandler.coords+self.Results.R[inc].U,
 #                   fig,ax,view=view,
 #                   scale=force_scale)
     
@@ -124,7 +124,7 @@ def p_model(self,config='deformed',view='xz',contour='force',lim_scale=1.0,force
         plt.xlabel(view[0])
         plt.ylabel(view[1])
 
-       #plot_force(self.ExtForces.forces,self.Nodes.coords)
+       #plot_force(self.ExtForces.forces,self.NodeHandler.coords)
     #plt.show()
     return fig, ax
        
@@ -192,14 +192,14 @@ def p_path(self, nodepath, increment=-1, Y='Displacement X', fig=None, ax=None):
     
     for node in nodepath:
         if 'Displacement' in Y:
-            y = R.U[np.where(self.Nodes.labels == node)][0][dir_dict[Y[-1]]]
+            y = R.U[np.where(self.NodeHandler.labels == node)][0][dir_dict[Y[-1]]]
         elif 'LPF' in Y:
             y = R.lpf
         elif 'Force' in Y:
-            y = R.r[np.where(self.Nodes.labels == node)][0][dir_dict[Y[-1]]]
+            y = R.r[np.where(self.NodeHandler.labels == node)][0][dir_dict[Y[-1]]]
         elif 'State Variable' in Y:
             stv_index = int(Y[-1])-1
-            y = R.state_v[np.where(self.Nodes.labels == node)][0][stv_index]
+            y = R.state_v[np.where(self.NodeHandler.labels == node)][0][stv_index]
         xx.append(x)
         yy.append(y)
     
@@ -219,24 +219,24 @@ def p_history(self, nodes=[1, 1], increments=None, X='Displacement X', Y='LPF', 
     x,y = np.nan,np.nan
     for R in self.Results.R:
         if 'Displacement' in X:
-            x = R.U[np.where(self.Nodes.labels == nodes[0])][0][dir_dict[X[-1]]]
+            x = R.U[np.where(self.NodeHandler.labels == nodes[0])][0][dir_dict[X[-1]]]
         elif 'LPF' in X:
             x = R.lpf
         elif 'Force' in X:
-            x = R.r[np.where(self.Nodes.labels == nodes[0])][0][dir_dict[X[-1]]]
+            x = R.r[np.where(self.NodeHandler.labels == nodes[0])][0][dir_dict[X[-1]]]
         elif 'State Variable' in X:
             stv_index = int(X[-1])-1
-            x = R.state_v[np.where(self.Nodes.labels == nodes[0])][0][stv_index]
+            x = R.state_v[np.where(self.NodeHandler.labels == nodes[0])][0][stv_index]
         
         if 'Displacement' in Y:
-            y = R.U[np.where(self.Nodes.labels == nodes[1])][0][dir_dict[Y[-1]]]
+            y = R.U[np.where(self.NodeHandler.labels == nodes[1])][0][dir_dict[Y[-1]]]
         elif 'LPF' in Y:
             y = R.lpf
         elif 'Force' in Y:
-            y = R.r[np.where(self.Nodes.labels == nodes[1])][0][dir_dict[Y[-1]]]
+            y = R.r[np.where(self.NodeHandler.labels == nodes[1])][0][dir_dict[Y[-1]]]
         elif 'State Variable' in Y:
             stv_index = int(Y[-1])-1
-            y = R.state_v[np.where(self.Nodes.labels == nodes[1])][0][stv_index]
+            y = R.state_v[np.where(self.NodeHandler.labels == nodes[1])][0][stv_index]
         xx.append(x)
         yy.append(y)
     

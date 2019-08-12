@@ -30,6 +30,13 @@ from subprocess import run as sp_run
 import numpy as np
 import pandas as pd
 
+from .core import Node
+from .core import Element
+from .core import Material
+from .core import Geometry
+from .core import BoundaryU
+from .core import ExternalForce
+
 # Handler Classes
 from .handlers import SettingsHandler
 from .handlers import NodeHandler
@@ -98,14 +105,12 @@ class Model:
     ----
     * move g(V), dgdV(V) from Model class to path_tracing function
     """
-    def __init__(self,file=None,log=2,logfile=False,logfile_name='analysis'):
+    def __init__(self,log=2,logfile=False,logfile_name='analysis'):
         """Init Model class with default values. If input file is specified,
         collect all data and create model.
         
         Parameter
         ---------
-        file : None or str, optional
-            name of input file (default is None)
             
         log : int
             Level of collecting logging informations during analysis.
@@ -115,17 +120,10 @@ class Model:
             flag for logfile creation (default is True)
         """
         self.stdout = sys.stdout
-        self.file = file
         self.logfile = logfile
-        if file is None:
-            pass
-            #self.logfile = False
         
-        if self.file is not None:
-            self.logfile_name = '.'.join(self.file.split('.')[:-1])
-        else:
-            self.logfile_name = logfile_name
-            #self.logfile = False
+        self.logfile_name = logfile_name
+
         if self.logfile:
             sys.stdout = open(self.logfile_name+'.md', 'w')
             print(r"<script src='https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>")
@@ -142,12 +140,12 @@ class Model:
                                       |___/ 
         
         TrussPy - Object Oriented Truss Solver for Python
-                  Version 2018.08 (Build 20180829)
+                  Version 2019.08 (Build 201908)
 
         Author: Dutzler A.
-                Graz University of Technology, 2018
+                Graz University of Technology, 2018-2019
                 
-        TrussPy  Copyright (C) 2018  Andreas Dutzler
+        TrussPy  Copyright (C) 2019  Andreas Dutzler
         This program comes with ABSOLUTELY NO WARRANTY; 
         for details type `trusspy.show_w()'.
         This is free software, and you are welcome to redistribute it
@@ -158,7 +156,14 @@ class Model:
         if log > 1: print('# Initialize Model')
         if log > 1: print('* loading Managers\n')
         
-        self.Nodes = NodeHandler()
+        self.Node = Node
+        self.Element = Element
+        self.Material = Material
+        self.Geometry = Geometry
+        self.Boundary = BoundaryU
+        self.Force = ExternalForce
+        
+        self.NodeHandler = NodeHandler()
         self.Elements = ElementHandler()
         self.Boundaries = BoundaryHandler()
         self.ExtForces = ExternalForceHandler()
@@ -168,29 +173,12 @@ class Model:
         
         if log > 1: print('    - finished.\n')
         #if log > 1: print('-'*88+'\n')
-        
-        if file is not None:
-            if log > 1: print('* loading INPUT-File: "'+file+'"\n')
-            Nodes = pd.read_excel(file,sheet_name="Nodes",skiprows=2).as_matrix()[:,:4].astype(float)
-            Elements = pd.read_excel(file,sheet_name="Elements",skiprows=2).as_matrix()[:,:10].astype(float)
-            Material = pd.read_excel(file,sheet_name="Material",skiprows=2).as_matrix()[:,:10].astype(float)
-            Geometry = pd.read_excel(file,sheet_name="Geometry",skiprows=2).as_matrix()[:,:10].astype(float)
-            ExtForces = pd.read_excel(file,sheet_name="ExternalForces",skiprows=2).as_matrix()[:,:1+5*3].astype(float)
-            Boundary_U = pd.read_excel(file,sheet_name="BoundaryU",skiprows=2).as_matrix()[:,:4].astype(float)
-            Boundary_T = pd.read_excel(file,sheet_name="BoundaryT",skiprows=2).as_matrix()[:,:2].astype(float)
-            if log > 1: print('    - successful.\n')
-            
-            if log > 1: print('* Converting Data...\n')
-            self.Nodes.add_node_matrix(Nodes)
-            self.Elements.add_element_matrix(Elements,Material,Geometry,Boundary_T)
-            self.ExtForces.add_force_matrix(ExtForces)
-            self.Boundaries.add_bound_U_matrix(Boundary_U)
-
-            if log > 1: print('    - Import finished.\n')
-            #if log > 1: print('-'*88)
     
     def build(self):
         """build Model (r,U,K,...) with Model data and dimensions."""
+        
+        # create global connectivity 
+        self.Elements.build()
         
         self.Results = ResultHandler()
         self.Analysis = Analysis()
@@ -199,21 +187,21 @@ class Model:
         self.time0_build = time.time()
         
         # initialize numbers: #nodes, #elements, #dof
-        self.nnodes = len(self.Nodes.labels)
-        self.nelems = len(self.Elements.labels)
+        self.nnodes = len(self.NodeHandler.labels)
+        self.nelems = len(self.Elements.elements)
         self.ndim = self.Settings.ndim
         self.ndof = self.nnodes * self.ndim
         
         # fix node sorting, undefined boundaries and undefined external forces
-        self.Nodes.fix_nodes()
-        self.Boundaries.fix_bounds_U(self.Nodes.labels)
-        self.ExtForces.fix_forces(self.Nodes.labels)
+        self.NodeHandler.fix_nodes()
+        self.Boundaries.fix_bounds_U(self.NodeHandler.labels)
+        self.ExtForces.fix_forces(self.NodeHandler.labels)
         
-        if not(np.allclose(self.Nodes.labels,self.Boundaries.Unodes) and np.allclose(self.Nodes.labels,self.ExtForces.nodes)):
+        if not(np.allclose(self.NodeHandler.labels,self.Boundaries.Unodes) and np.allclose(self.NodeHandler.labels,self.ExtForces.nodes)):
             raise IOError('Node sorting failed.')
         
         # init state variables for plasticity
-        if 2 in self.Elements.mat_type:
+        if 2 in self.Elements.materials:
             self.Settings.nstatev = 2
         
         # node properties
@@ -470,26 +458,26 @@ class Model:
         self.Analysis.U0.reshape(len(self.Analysis.U0.flatten(),))[self.Analysis.DOF1] = U0red
         
         # loop over elements
-        for e in self.Elements.labels:
-            nodes = self.Elements.get_nodes(e) # connected nodes
+        for e in self.Elements.elements:
+            nodes = e.connectivity # connected nodes
             
-            mat_prop = self.Elements.get_material_properties(e)  # material parameter
-            geo_prop = self.Elements.get_geometric_properties(e) # geometric parameter
+            mat_prop = e.material.properties  # material parameter
+            geo_prop = e.geometry.properties # geometric parameter
             
             # undeformed coordinates of begin and end nodes
             Xnodes = np.zeros((len(nodes),3))
             for n,node in enumerate(nodes):
-                Xnodes[n] = self.Nodes.coords[np.where(self.Nodes.labels == node)][0]
+                Xnodes[n] = self.NodeHandler.coords[np.where(self.NodeHandler.labels == node)][0]
             
             # displacements at begin and end nodes
             Unodes = np.zeros((len(nodes),3))
             for n,node in enumerate(nodes):
-                Unodes[n] = self.Analysis.U[np.where(self.Nodes.labels == node)][0]
+                Unodes[n] = self.Analysis.U[np.where(self.NodeHandler.labels == node)][0]
             
             # initial displacements at begin and end nodes
             U0nodes = np.zeros((len(nodes),3))
             for n,node in enumerate(nodes):
-                U0nodes[n] = self.Analysis.U0[np.where(self.Nodes.labels == node)][0]
+                U0nodes[n] = self.Analysis.U0[np.where(self.NodeHandler.labels == node)][0]
                 
             # RESOLVE PROBLEM IN STATEV UPDATE
             if self.Settings.nstatev > 0:
@@ -500,20 +488,20 @@ class Model:
             # internal forces at begin and end nodes
             rnodes = np.zeros((len(nodes),3))
             for n,node in enumerate(nodes):
-                rnodes[n] = self.Analysis.r[np.where(self.Nodes.labels == node)][0]
-                
-            mat_type = self.Elements.get_material_type(e)
-            #elem_type = self.Elements.get_element_type(e)
+                rnodes[n] = self.Analysis.r[np.where(self.NodeHandler.labels == node)][0]
+            
+            #elem_type = e.classification
+            mat_type  = e.material.classification
             
             if mat_type == 1:
                 umat = umat_el
             elif mat_type == 2:
                 umat = umat_elplast_iso
-            elif mat_type == 3:
-                umat = umat_elplast_kiniso
+            #elif mat_type == 3:
+            #    umat = umat_elplast_kiniso
             
             self.Analysis,state_v = truss(e,nodes,Xnodes,Unodes,U0nodes,rnodes,
-                                       self.Nodes.labels,self.Elements.labels,stage,
+                                       self.NodeHandler.labels,self.Elements.labels,stage,
                                        state_v,mat_prop,geo_prop,umat,
                                        self.Analysis)
             if statev_write and self.Settings.nstatev > 0:

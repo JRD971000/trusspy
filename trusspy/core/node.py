@@ -21,7 +21,7 @@ class Node:
     ----------
     label : int
         Node ID number
-    coord : ndarray
+    coordinates : ndarray
         List of node coordinates: `[X, Y, Z]`
         
     Todo
@@ -29,6 +29,11 @@ class Node:
     - add undeformed/deformed coordinates (useful?)
     - copy deformed coordinates to result class at the end of each increment
     """
-    def __init__(self,label,coord):
+    def __init__(self,label,coordinates):
         self.label = label
-        self.coord = np.array(coord)
+        self.coordinates = np.array(coordinates)
+        
+    def __enter__(self):
+        return self
+    def __exit__(self, H_type, H_value, H_traceback):
+        pass
