@@ -21,7 +21,6 @@ def truss(e,nodes,Xnodes,Unodes,U0nodes,rnodes,
     dX = XE-XA
     dx = dX + dU
     
-    
     U0A,U0E = U0nodes
     dU0 = U0E-U0A
     dx0 = dX + dU0

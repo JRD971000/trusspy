@@ -37,7 +37,7 @@ with M.ExternalForceHandler as MF:
 #
 M.Settings.incs = 100
 M.Settings.xlimit = (2,0.5)
-M.Settings.dlpf
+
 M.Settings.stepcontrol = True
 M.Settings.maxfac = 4
 #
@@ -50,7 +50,7 @@ M.run()
 #fig.savefig('model_undeformed.pdf')
 #
 ## model plot: undeformed and deformed configuration for last increment
-fig, ax = M.plot_model(config=['undeformed','deformed'],
+fig, ax = M.plot_model(config=['deformed'],inc=-1,
                        view='xz',
                        contour='force',
                        lim_scale=(-1,3,-2.5,1.5)
@@ -59,7 +59,7 @@ fig, ax = M.plot_model(config=['undeformed','deformed'],
 #fig.savefig('model_deformed.pdf')
 #
 ## history plot
-#fig, ax = M.plot_history(nodes=[2,2],X='Displacement Z',Y='LPF')
+fig, ax = M.plot_history(nodes=[2,2],X='Displacement Z',Y='LPF')
 #
 ## re-run with plasticity
 #with M.Elements as ME:

@@ -44,12 +44,8 @@ class ElementHandler:
         "add single element to ElementManager"
         
         self.elements = np.append(self.elements,E)
-    
-    def del_element(self,label):
-        idx = np.where(self.labels == label)[0]
-        self.labels = np.delete(self.labels, idx,axis=0)
    
-    def add_elements(self,EE):
+    def add_list(self,EE):
         "add several elements from element list to ElementManager"
         for E in EE:
             self.add_element(E)

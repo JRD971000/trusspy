@@ -30,6 +30,7 @@ from subprocess import run as sp_run
 import numpy as np
 import pandas as pd
 
+# Core classes
 from .core import Node
 from .core import Element
 from .core import Material
@@ -180,6 +181,7 @@ class Model:
         # create global connectivity 
         self.NodeHandler.build()
         self.ElementHandler.build()
+        self.BoundaryHandler.build()
         self.ExternalForceHandler.build()
         
         self.ResultHandler = ResultHandler()
@@ -196,16 +198,13 @@ class Model:
         
         # fix node sorting, undefined boundaries and undefined external forces
         #self.NodeHandler.fix_nodes()
-        self.BoundaryHandler.fix_bounds_U(self.NodeHandler.labels)
-        self.ExternalForceHandler.fix_forces(self.NodeHandler.labels)
-        
-        if not np.allclose(self.NodeHandler.labels,self.ExternalForceHandler.nodes):
-            self.ExternalForceHandler.build()
-            self.ExternalForceHandler.fix_forces(self.NodeHandler.labels)
-            #print(self.ExternalForceHandler.nodes)
-            #raise IOError('Node sorting failed.')
+        self.BoundaryHandler.fix(self.NodeHandler.labels)
+        self.ExternalForceHandler.fix(self.NodeHandler.labels)
             
-        if not(np.allclose(self.NodeHandler.labels,self.BoundaryHandler.Unodes) and np.allclose(self.NodeHandler.labels,self.ExternalForceHandler.nodes)):
+        if not(np.allclose(self.NodeHandler.labels,
+                           self.BoundaryHandler.nodes) 
+           and np.allclose(self.NodeHandler.labels,
+                           self.ExternalForceHandler.nodes)):
             raise IOError('Node sorting failed.')    
         
         # init state variables for plasticity
@@ -218,7 +217,7 @@ class Model:
         #      active = free  = 1
         #    inactive = fixed = 0
         
-        self.nproBC = self.BoundaryHandler.Uvalues
+        self.nproBC = self.BoundaryHandler.dof
         self.nproDOF = np.arange(self.ndof).reshape(self.nnodes,self.ndim)
         self.nproDOF0 = self.nproDOF.flatten()[np.where(self.nproBC.flatten() == 0)]
         self.nproDOF1 = self.nproDOF.flatten()[np.where(self.nproBC.flatten() == 1)]
@@ -293,7 +292,7 @@ class Model:
         self.clock0_run = time.clock()
         
         
-        # reduced modified displacement vector to active DOF and LPF
+        # reduce modified displacement vector to active DOF and LPF
         self.Analysis.Vred = np.append(self.Analysis.Ured, 0)
         self.Analysis.lpf = 0
         
@@ -303,7 +302,7 @@ class Model:
         
         for step in range(self.Settings.nsteps):
             
-            # maximum number of increment and maximum value per step
+            # maximum number of increments and maximum value per step
             if type(self.Settings.incs) == tuple:
                 incs = self.Settings.incs[step]
             else:
@@ -507,8 +506,8 @@ class Model:
                 umat = umat_elplast_iso
             #elif mat_type == 3:
             #    umat = umat_elplast_kiniso
-            
-            self.Analysis,state_v = truss(e,nodes,Xnodes,Unodes,U0nodes,rnodes,
+
+            self.Analysis,state_v = truss(e.label,nodes,Xnodes,Unodes,U0nodes,rnodes,
                                        self.NodeHandler.labels,self.ElementHandler.labels,stage,
                                        state_v,mat_prop,geo_prop,umat,
                                        self.Analysis)

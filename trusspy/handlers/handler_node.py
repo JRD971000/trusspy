@@ -32,7 +32,7 @@ class NodeHandler:
             self.coordinates = np.vstack((self.coordinates,N.coordinates))
             self.labels      = np.append(self.labels,N.label)
             
-        self.fix_nodes()
+        self.fix()
         
         # remove in a further step
         self.coords = self.coordinates.copy()
@@ -41,7 +41,7 @@ class NodeHandler:
         for N in NN:
             self.add_node(N)
             
-    def fix_nodes(self):
+    def fix(self):
         indices = np.argsort(self.labels)
         self.labels = self.labels.take(indices)
         self.coordinates = self.coordinates.take(indices,axis=0)

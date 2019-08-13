@@ -22,35 +22,11 @@ class BoundaryU:
     ----------
     node : int
         Node ID number
-    values : ndarray
+    dof : ndarray
         Array of boundary components: `array([U1, U2, U3])`. 
         Set 1 for active (free) DOF and 0 for inactive (locked) DOF.
-        
-    Todo
-    ----
-    - rename to DOFState or something similar
+
     """
-    def __init__(self,node,values):
+    def __init__(self,node,dof):
         self.node = node
-        self.values = np.array(values)
-        
-class BoundaryT:
-    """Thermal element based boundary class.
-    
-    Parameter
-    ---------
-    element : int
-        Element ID number
-    value : float
-        Value of thermal load
-        
-    Attributes
-    ----------
-    element : int
-        Element ID number
-    value : float
-        Value of thermal load
-    """
-    def __init__(self,element,value):
-        self.element = element
-        self.value = value
+        self.dof = np.array(dof)

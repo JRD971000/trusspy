@@ -11,19 +11,7 @@ from ..core.boundary import BoundaryU
 class BoundaryHandler:
     "Handler for Boundary Conditions"
     def __init__(self):
-        
-        # Node-based displacement boundary condition
-        self.Unodes = None
-        
-        # UValue:
-        # 1=active    (free)  DOF
-        # 0=inactive (locked) DOF
-        self.Uvalues = None
-        
-        # NOT IMPLEMENTED
-        # Element based thermal boundary condition
-        #self.Telements = None
-        #self.Tvalues = None
+        self.boundaries = np.array([],dtype=object)
         
     def __enter__(self):
         return self
@@ -32,42 +20,38 @@ class BoundaryHandler:
         
     def add(self,B, *args, **kwargs):
         """add displacement boundary"""
+        
+        self.boundaries = np.append(self.boundaries,B)
             
-        if self.Unodes is None:
-            self.Unodes = np.array([B.node])
-            self.Uvalues = np.array(B.values)
-        else:
-            self.Unodes = np.append(self.Unodes,B.node)
-            self.Uvalues = np.vstack((self.Uvalues,B.values))
+    def build(self,reset=True):
+        self.nodes = np.array([],dtype=int)
+        self.dof = np.zeros((0,3),dtype=np.float)
+
+        for B in self.boundaries:
+            self.nodes      = np.append(self.nodes,B.node)
+            self.dof = np.vstack((self.dof,B.dof))
             
-    def add_bounds_U(self,BB):
+    def add_list(self,BB):
         """add list of displacement boundaries"""
         for B in BB:
-            self.add_bound_U(B)
-            
-    def fix_bounds_U(self,nodelist):
-        # check for undefined DOF --> set them all to free
-        
-        # are nodelist entries in Unodes?
-        mask = np.isin(nodelist, self.Unodes, invert=True)
-        fix_nodes = nodelist[mask] # nodes to fix
-        for n in fix_nodes:
-            B = BoundaryU(n, (1,1,1))
             self.add(B)
-        indices = np.argsort(self.Unodes)
-        self.Unodes = self.Unodes.take(indices)
-        self.Uvalues = self.Uvalues.take(indices,axis=0)
-                             
-    def add_bound_T(self,B):
-        # add thermal boundary
-        if self.Tnodes is None:
-            self.Tnodes = np.array([B.node])
-            self.Tvalues = np.array(B.value)
-        else:
-            self.Tnodes = np.append(self.Tnodes,B.node)
-            self.Tvalues = np.vstack((self.Tvalues,B.value))
             
-    def add_bounds_T(self,BB):
-        # add list of thermal boundaries
-        for B in BB:
-            self.add_bound_T(B)
+    def fix(self,nodelist):
+        # check for missing external forces --> set them all to zero
+        
+        # are nodelist entries in force-nodes?
+        mask = np.isin(nodelist, self.nodes, invert=True)
+        fix_nodes = nodelist[mask] # nodes to fix
+
+        #comp = self.components.shape[1]
+        for n in fix_nodes:
+            #F = ExternalForce(n, np.zeros(comp))
+            B = BoundaryU(n, (0,0,0))
+            self.add(B)
+            
+        # re-build nodes and components
+        self.build()
+        
+        indices = np.argsort(self.nodes)
+        self.nodes = self.nodes.take(indices)
+        self.dof = self.dof.take(indices,axis=0)

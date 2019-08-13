@@ -130,7 +130,7 @@ def plot_force(f0,X,fig=None,ax=None,view='xz',color='C2',scale=0.5):
                 if fig is None: fig = plt.figure()
                 if ax is None: ax = fig.add_subplot(111, projection='3d')
                 arrow_properties = dict(mutation_scale=20, 
-                                        lw=3,
+                                        lw=2,
                                         arrowstyle='-|>', 
                                         color=color,
                                         shrinkA=0, 
@@ -230,12 +230,7 @@ def plot_elems(E,X,fig=None,ax=None,view='xz',color='C0',contour=None,lim_scale=
         #plt.gca().yaxis.set_label_position("right")
         
     try:
-        if len(lim_scale) == 2:
-            minx,maxx = lim_scale
-            miny,maxy = minx,maxx
-            plt.xlim(minx, maxx)
-            plt.ylim(miny, maxy)
-        elif len(lim_scale) == 4:
+        if len(lim_scale) == 4:
             minx,maxx,miny,maxy = lim_scale
             plt.xlim(minx, maxx)
             plt.ylim(miny, maxy)
@@ -245,8 +240,8 @@ def plot_elems(E,X,fig=None,ax=None,view='xz',color='C0',contour=None,lim_scale=
             ax.set_ylim(miny, maxy)
             ax.set_zlim(minz, maxz)
             m = 0.5*min(maxx,maxy,maxz)
-            xx, yy = np.meshgrid(np.linspace(0,m,2), np.linspace(0,m,2))
-            ax = plot_coord(ax,m)
+            xx, yy = np.meshgrid(np.linspace(0,1,2), np.linspace(0,1,2))
+            ax = plot_coord(ax,1)
             zz = np.zeros_like(xx)
             ax.plot_surface(xx, yy, zz, alpha=0.2)
             #print(ax.elev,ax.azim)
@@ -258,40 +253,34 @@ def plot_elems(E,X,fig=None,ax=None,view='xz',color='C0',contour=None,lim_scale=
                           abs(plt.ylim()[0]),
                           abs(plt.ylim()[1]))
         
-        if lim_scale < 0:
-            m = -lim_scale
-        else:
-            alimx = (plt.xlim()[1] - plt.xlim()[0])/2
-            alimy = (plt.ylim()[1] - plt.ylim()[0])/2
-            mlimx = (plt.xlim()[1] + plt.xlim()[0])/2
-            mlimy = (plt.ylim()[1] + plt.ylim()[0])/2
-            alim = lim_scale*max(alimx,alimy)
-            #lmin, lmax = (lim_scale*min(plt.xlim()[0],plt.ylim()[0]),
-            #              lim_scale*max(plt.xlim()[1],plt.ylim()[1]))
-            minx, maxx = (mlimx-alim, mlimx+alim)
-            miny, maxy = (mlimy-alim, mlimy+alim)
-            if abs(lim_scale) < 100:
-                plt.xlim(minx, maxx)
-                plt.ylim(miny, maxy)
+        #if lim_scale < 0:
+        #    m = -lim_scale
+        #else:
+        alimx = (plt.xlim()[1] - plt.xlim()[0])/2
+        alimy = (plt.ylim()[1] - plt.ylim()[0])/2
+        mlimx = (plt.xlim()[1] + plt.xlim()[0])/2
+        mlimy = (plt.ylim()[1] + plt.ylim()[0])/2
+        alim = lim_scale*max(alimx,alimy)
+        #lmin, lmax = (lim_scale*min(plt.xlim()[0],plt.ylim()[0]),
+        #              lim_scale*max(plt.xlim()[1],plt.ylim()[1]))
+        minx, maxx = (mlimx-alim, mlimx+alim)
+        miny, maxy = (mlimy-alim, mlimy+alim)
+        #if abs(lim_scale) < 100:
+        #    plt.xlim(minx, maxx)
+        #    plt.ylim(miny, maxy)
         
         if view=='3d':
-            if abs(lim_scale) < 100:
-                ax.set_xlim(-m,m)
-                ax.set_ylim(-m,m)
-                ax.set_zlim(-m,m)
-                xx, yy = np.meshgrid(np.linspace(0,m,2), np.linspace(0,m,2))
-                ax = plot_coord(ax,m)
-            else:
-                xx, yy = np.meshgrid(np.linspace(0,1,2), np.linspace(0,1,2))
-                ax = plot_coord(ax,1)
+
+            ax.set_xlim(-m,m)
+            ax.set_ylim(-m,m)
+            ax.set_zlim(-m,m)
+            xx, yy = np.meshgrid(np.linspace(0,1,2), np.linspace(0,1,2))
+            ax = plot_coord(ax,1)
+
             zz = np.zeros_like(xx)
             ax.plot_surface(xx, yy, zz, alpha=0.2)
             #print(ax.elev,ax.azim)
             ax.view_init(20, -40)
-        else:
-            if lim_scale < 0 and abs(lim_scale) < 100:
-                plt.xlim(-m,m)
-                plt.ylim(-m,m)
 
     plt.gcf().set_size_inches(8,6)
     plt.gca().set_aspect('equal')
