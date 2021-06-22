@@ -292,15 +292,7 @@ def pathfollow(g,dgdx, x, analysis, dxmax=[0.02,0.02],
     # loop over increments
     for i in range(incs):
         
-        # print informations
-        if verbose > 0:
-            #print(r'\pagebreak')
-            print(r'')
-            print(r'### Increment', i+1)
-                              
-        if verbose > 1: print(r'|Cycle|NR-It.|Control| Norm(g) |i(1)|Value   |i(2)|Value   |i(3)|Value   |')
-        if verbose > 1: print( '|:---:|:----:|:-----:|:-------:|:--:|:------:|:--:|:------:|:--:|:------:|')
-        
+
         # COPY RESULT
         x0    =    x.copy()
         
@@ -343,9 +335,7 @@ def pathfollow(g,dgdx, x, analysis, dxmax=[0.02,0.02],
             Dxs_pre = np.sort(abs(Dx_pre/dxmax))*np.sign( (Dx_pre/dxmax).T[Dxi_pre-1] )
             i1,v1 = Dxi_pre[-1], Dxs_pre[-1]
             j_pre = int(i1*np.sign(v1))
-            if verbose > 1:
-                print('| {0:2d}  |  {1:2d}  |  {2:2d}   |{3:1.3e}|{4:4d}|{5:8.1g}|    |        |    |        |'.format(
-                      z+1,n_pre-1,j,f_norm_pre,i1,v1))
+         
             
             # set the found solution to j
             j = j_pre
@@ -359,10 +349,7 @@ def pathfollow(g,dgdx, x, analysis, dxmax=[0.02,0.02],
         
         # recylce loop
         while nr_success_pre is not True:
-            if verbose > 1: print('')
-            if verbose > 1: print(r'|Cycle|NR-It.|Control| Norm(g) |i(1)|Value   |i(2)|Value   |i(3)|Value   |')
-            if verbose > 1: print( '|:---:|:----:|:-----:|:-------:|:--:|:------:|:--:|:------:|:--:|:------:|')
-            
+          
             # RESET X TO START SOLUTION X0 and COPY j to j0
             x = x0.copy()
             j0 = j
@@ -394,10 +381,7 @@ def pathfollow(g,dgdx, x, analysis, dxmax=[0.02,0.02],
             #    i4, v4 = Dxi[-4], Dxs[-4]
             
             # PRINT INFORMATIONS ON BIGGEST INCREMENTAL COMPONENTS
-            if verbose > 1: 
-                print('|total| sum  | used  |  final  |    | final  |    | final  |    | final  |')
-                print('| {0:2d}  |  {1:2d}  |  {2:2d}   |{3:1.3e}|{4:4d}|{5:8.4f}|{6:4d}|{7:8.4f}|{8:4d}|{9:8.4f}|'.format(
-                      z+1,n+n_pre,j,f_norm,i1,v1,i2,v2,i3,v3))
+       
                 
             # set new control comp. if not fixed by the user
             if not j_fixed:
@@ -455,9 +439,7 @@ def pathfollow(g,dgdx, x, analysis, dxmax=[0.02,0.02],
             
             z=z+1
             n_pre = 0
-            
-            print('')
-            print('* recycling increment')
+
             
         
         # save results to analysis object
@@ -470,9 +452,6 @@ def pathfollow(g,dgdx, x, analysis, dxmax=[0.02,0.02],
         res_a.append(copy.deepcopy(analysis))
         
         
-        if verbose > 0:
-            print('')
-            print('* final LPF: {0: 10.4g}'.format(x[-1]))
             
         # Stop due to error
         if stop: break
@@ -480,7 +459,7 @@ def pathfollow(g,dgdx, x, analysis, dxmax=[0.02,0.02],
         # Maximum value reached
         if xlimit is not None:
             if abs(x[xlimit[0]-1]) > xlimit[1]:
-                print('* EXIT 1: Job stopped - max value of control component reached.')
+               
                 break
     
     return res_x,res_a
