@@ -111,12 +111,7 @@ def newton(f,dfdx,x,nfev=8,ftol=1e-8,xtol=1e-8,verbose=0,*args):
         f_norm = norm(f(x,*args))
         x_norm = norm(dx)
         
-        if verbose > 0: 
-            #print('        {0:2d}          |{1:1.3e} {2:1.3e}|           |           |           |'.format(
-            #      n,f_norm,x_norm))
-            print('|     |  {0:2d}  |       |{1:1.3e}|    |        |    |        |    |        |'.format(n+1,f_norm))
-            #print('+---+------+-------+---------+-----------+-----------+-----------+-----------+')
-            
+ 
         if (f_norm < ftol and x_norm < xtol):
             success = True
             break
